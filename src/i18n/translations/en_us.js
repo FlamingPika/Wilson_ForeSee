@@ -36,10 +36,19 @@ export default {
   SIGNIN_placeholder_3: "Confirm Password",
 
   // NEW
-  SIGNIN_incomplete:
-    "Your email or password is incomplete. Please check again.",
-  SIGNIN_pwNotMatch:
-    "Your email or password is incomplete. Or your passwords does not match.",
+  TEST:
+    "TESTING",
+  SIGNIN_invalidEmail:
+    "Your email is invalid",
+  emptyEmail:
+    "The email is empty",
+  emptyPassword:
+    "The password is empty",
+
+  SIGNUP_usedEmail:
+    "This email has been used",
+  SIGNUP_pwNotMatch:
+    "Your passwords does not match.",
   SIGNIN_failed:
     "Your process has failed, please check your email or password.",
 

@@ -69,8 +69,18 @@ export default function SigninScreen({ navigation, route }) {
       <Text style={[s.text.small, s.color.secondary, s.text.googleSansMedium]}>
         {content == "incomplete"
           ? I18n.t("SIGNIN_incomplete")
+          : content == "TEST"
+          ? I18n.t("TEST")
+          : content == "usedEmail"
+          ? I18n.t("SIGNUP_usedEmail")
+          : content == "emptyEmail"
+          ? I18n.t("emptyEmail")
+          : content == "emptyPassword"
+          ? I18n.t("emptyPassword")
+          : content = "invalidEmail"
+          ? I18n.t("SIGNIN_invalidEmail")
           : content == "pwNotMatch"
-          ? I18n.t("SIGNIN_pwNotMatch")
+          ? I18n.t("SIGNUP_pwNotMatch")
           : content == "resetPW"
           ? I18n.t("SIGNIN_emailSentPassword")
           : I18n.t("SIGNIN_failed")}
@@ -81,20 +91,33 @@ export default function SigninScreen({ navigation, route }) {
   const signIn = async (email, password) => {
     console.log("this is sign in");
     setLoading(true);
-    if (email != "" && password != "") {
+    if (email == ""){
+      toggleVisible();
+      updatePopupContent("emptyEmail");
+    }
+    else if (password == ""){
+      toggleVisible();
+      updatePopupContent("emptyPassword");
+    }
+    else {
       await auth()
         .signInWithEmailAndPassword(email, password)
         .then(() => {
           console.log("Sign in success");
         })
         .catch((err) => {
-          console.log("Sign in failed", err);
-          toggleVisible();
-          updatePopupContent("failed");
+          if(err.code === 'auth/invalid-email'){
+            console.log("Invalid Email");
+            toggleVisible();
+            updatePopupContent("TEST");
+          }
+          else{
+            // Just to make sure no anomalies happen
+            console.log("Sign in failed", err);
+            toggleVisible();
+            updatePopupContent("failed");
+          }
         });
-    } else {
-      toggleVisible();
-      updatePopupContent("incomplete");
     }
     setLoading(false);
   };
@@ -102,7 +125,19 @@ export default function SigninScreen({ navigation, route }) {
   const signUp = async () => {
     console.log("this is sign up");
     setLoading(true);
-    if (email != "" && password != "" && password == confirmPassword) {
+    if (email == ""){
+      toggleVisible();
+      updatePopupContent("emptyEmail");
+    }
+    else if (password == ""){
+      toggleVisible();
+      updatePopupContent("emptyPassword");
+    }
+    else if (password != confirmPassword){
+      toggleVisible();
+      updatePopupContent("pwNotMatch");
+    }
+    else if (email != "" && password != "" && password == confirmPassword) {
       await auth()
         .createUserWithEmailAndPassword(email, password)
         .then(async () => {
@@ -110,14 +145,18 @@ export default function SigninScreen({ navigation, route }) {
           if (mode === "pro") await initProUser();
         })
         .catch((err) => {
-          console.log("Sign up failed", err.code);
-          toggleVisible();
-          updatePopupContent("failed");
+          if(err.code === 'auth/email-already-in-use'){
+            console.log("Email is already been used");
+            toggleVisible();
+            updatePopupContent("usedEmail");
+          }
+          else{
+            console.log("Sign up failed", err.code);
+            toggleVisible();
+            updatePopupContent("failed");
+          }
         });
-    } else {
-      toggleVisible();
-      updatePopupContent("pwNotMatch");
-    }
+    } 
     setLoading(false);
   };
 
