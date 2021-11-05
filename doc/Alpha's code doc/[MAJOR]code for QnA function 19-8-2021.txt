@@ -1,0 +1,1381 @@
+
+Basic core sturcture of the QnA function, which go across the ForeSee app and admin app
+
+////////////////////////////////////////////////////////////////////////////////////////
+ForeSee App for showing and fetching the collection "QNA-Auth-ASubmitted" to member 
+ie.the final version of the qna with question and answer all authorized and submitted
+----------------------------------------------------------------------------------------
+QnASearchScreen.js ./src/screen/QnA/QnASearchScreen.js
+----------------------------------------------------------------------------------------
+//const the check whether the list is loaded
+  const [loading, setloading] = useState(true);
+
+//function to load the list from collection
+  const loadFirebaseQnA = async () => {
+    const tempList = await fetchAnsweredQnA(); //changed to fetchAnsweredQnA()
+    console.log("set list");
+    setAllQnAList(tempList);
+    setDynamicQnAList(tempList);
+  };
+
+//to ensure the data are defined to prevent error of undefined
+useEffect(() => {
+    if (dynamicQnAList == null || dynamicQnAList == undefined) {
+      console.log("data of list", dynamicQnAList);
+      setloading(true);
+      return loadFirebaseQnA();
+    } else {
+      if (dynamicQnAList[0] == null || dynamicQnAList[0] == undefined) {
+        console.log("data", dynamicQnAList[0]);
+        setloading(true);
+        return loadFirebaseQnA();
+      } else {
+        if (
+          dynamicQnAList[0].QnA == null ||
+          dynamicQnAList[0].QnA == undefined
+        ) {
+          console.log("data", dynamicQnAList[0].QnA);
+          setloading(true);
+          return loadFirebaseQnA();
+        } else {
+          setloading(false);
+        }
+      }
+    }
+  }, [dynamicQnAList]);
+
+//to have the loading screen when the data are yet loaded
+return(
+	...
+	<View>
+      {loading ? (
+        <Text>Loading...</Text>
+      ) : (
+        <FlatList
+          data={dynamicQnAList}
+          renderItem={({ item }) => {
+            return (
+              <View style={localStyles.questionStyle}>
+                <TagHorizontalList tagList={tagList} tags={item.tags} />
+                <TouchableOpacity
+                  style={{ paddingVertical: Spacing.h.xxsmall }}
+                  onPress={() =>
+                    navigation.navigate("QnADetail", { QnA: item })
+                  }
+                >
+                  <Text
+                    style={[
+                      s.text.small,
+                      s.color.main,
+                      s.text.googleSansRegular,
+                    ]}
+                  >
+                    {item.QnA.questionTitle}
+                  </Text>
+                </TouchableOpacity>
+              </View>
+            );
+          }}
+          keyExtractor={(item) => item.questionTitle}
+          contentContainerStyle={{
+            alignItems: "center",
+          }}
+        />
+      )}
+    </View>
+	...
+)
+
+----------------------------------------------------------------------------------------
+QnADetailScreen.js ./src/screen/QnA/QnADetailScreen.js
+----------------------------------------------------------------------------------------
+return(
+	...
+	<TextBox
+          type="question"
+          title={QnA.QnA.questionTitle}
+          content={QnA.QnA.questionContent} //changed to new structure of the doc
+        />
+        <TextBox
+          type="answer"
+          title={QnA.QnA.answerTitle}
+          content={QnA.QnA.answerContent || "Waiting for answer.."} //changed to new structure of the doc
+        />
+	...
+)
+
+----------------------------------------------------------------------------------------
+firebaseActions.js ./src/action/firebaseActions.js
+---------------------------------------------------------------------------------------
+-
+//to fectch the answer from collection for memebr
+//based upon previous function with name changed and collection changed
+
+export const fetchAnsweredQnA = async () => {
+  console.log("Fetching new QnA");
+  const snapshot = await firestore()
+    .collection("QNA-Auth-ASubmitted")  
+    .get()
+    .catch((error) => Alert.alert("Unable to access network", error));
+
+  if (!snapshot.empty) {
+    console.log("new QnA fetched");
+    let tempList = [];
+    snapshot.forEach((doc) => {
+      console.log(doc.id);
+      console.log(doc.data());
+      tempList.push({ key: doc.id, ...doc.data() });
+    });
+    console.log(tempList);
+    return tempList;
+  } else {
+    console.log("snapshot is empty");
+    return [];
+  }
+};
+//////////////////////////////////////////////////////////////////////////////////////////
+
+//////////////////////////////////////////////////////////////////////////////////////////
+ForeSee App for user to ask a question which is then passed in to the collection 
+"QNA-UnAuth-QSubmitted" and be wait for admin to authorized it. Also to form new doc
+in .collection("QNA-QAwerQnerCollection") to store the questioner of the question id
+----------------------------------------------------------------------------------------
+AskQuestionScreen.js ./src/screen/QnA/AskQuestionScreen.js
+----------------------------------------------------------------------------------------
+<RoundRectangleButton
+  ...
+  onPress={() => {
+            addQuestion({   //changed the function and remobed question answered bool
+              questionTitle,
+              questionContent,
+              tags: tagFilters,
+              answerTitle: null,
+              answerContent: null,
+              createAnswerTime: null,
+            })
+              ? setPopupContent(successContent)
+              : setPopupContent(failedContent);
+          }}
+      />
+  
+----------------------------------------------------------------------------------------
+firebaseActions.js ./src/action/firebaseActions.js
+----------------------------------------------------------------------------------------
+
+//to add question to collection "QNA-UnAuth-QSubmitted and form record in "QNA-QAwerQnerCollection"
+export const addQuestion = async (question) => {
+  const { currentUser } = auth(); //to get the uid of the questioner
+
+  await firestore() // to add the question to the collection
+    .collection("QNA-UnAuth-QSubmitted")
+    .add({ ...question, createProblemTime: Date.now() })
+    .then((data) => {
+      let UserID = data.id;
+      console.log("add question success", UserID);
+      firestore() // to form record in  "QNA-QAwerQnerCollection" with the questioner uid and question id
+        .collection("QNA-QAwerQnerCollection")
+        .doc(UserID)
+        .set({ Questioner: currentUser.uid, Answerer: null })
+        .then(console.log("add questioner detail passed"))
+        .catch((err) => {
+          console.log("add questioner detail failed", err);
+        });
+      return true;
+    })
+    .catch((error) => {
+      console.log("add question failed", error);
+      return false;
+    });
+};
+//////////////////////////////////////////////////////////////////////////////////////////
+
+//////////////////////////////////////////////////////////////////////////////////////////
+Admin App for authorizing questions in .collection("QNA-UnAuth-QSubmitted") and move it
+to .collection("QNA-Auth-QSubmitted")
+
+----------------------------------------------------------------------------------------
+firebaseActions.js ./src/action/firebaseActions.js
+----------------------------------------------------------------------------------------
+//to fetch question from .collection("QNA-UnAuth-QSubmitted")
+
+export const fetchQnAQuestion = async () => {
+  console.log("Fetching new QnA");
+  const snapshot = await firestore()
+    .collection("QNA-UnAuth-QSubmitted")
+    .get()
+    .catch(error => Alert.alert("Unable to access network", error));
+
+  if (!snapshot.empty) {
+    console.log("new QnA fetched");
+    let tempList = [];
+    snapshot.forEach(doc => tempList.push({key: doc.id, ...doc.data()}));
+    return tempList;
+  } else {
+    console.log("snapshot is empty");
+    return [];
+  }
+};
+
+----------------------------------------------------------------------------------------
+App.js ./App.js
+----------------------------------------------------------------------------------------
+//to add the stack for showing the question to authorize and detail screen
+ <HomeStack.Screen
+      name="AuthQuestion"
+      component={AuthQuestScreen}
+      options={{title: "Authorize Question"}}
+    />
+    <HomeStack.Screen
+      name="AuthQuestionDetail"
+      component={AuthQuestionDetail}
+      options={{title: "Auth Question Detail"}}
+    />
+
+----------------------------------------------------------------------------------------
+HomeScreen.js ./src/screens/HomeScreen.js
+----------------------------------------------------------------------------------------
+//added button for navigating the screen for authorized question
+  <View style={{flexDirection: "row"}}>
+        <View style={{flex: 1}}>
+          <Button
+            title="to Authorize question"
+            onPress={() => navigation.navigate("AuthQuestion")}
+          />
+        </View>
+    ...
+  <View/>
+----------------------------------------------------------------------------------------
+AuthQuestScreen.js ./src/screens/AuthQuestScreen.js
+----------------------------------------------------------------------------------------
+//screen added for showing the question to be authorized
+//mostly copied from QnASearchScreen.js of ForeSee App
+
+import React, {useEffect, useState} from "react";
+import {
+  View,
+  Text,
+  SafeAreaView,
+  StyleSheet,
+  FlatList,
+  TouchableOpacity,
+} from "react-native";
+import {fetchQnAQuestion} from "../actions/firebaseActions";
+
+import s from "../styles/styles";
+import {Size, Spacing, wp} from "../styles/size";
+import Color from "../styles/color";
+
+export default function AuthQuestScreen({navigation}) {
+  const [dynamicQnAList, setDynamicQnAList] = useState([]);
+
+  useEffect(() => {
+    const loadFirebaseQnA = async () => {
+      const tempList = await fetchQnAQuestion();
+      setDynamicQnAList(tempList);
+    };
+
+    loadFirebaseQnA();
+  }, [navigation]);
+
+  return (
+    <SafeAreaView style={[s.screen.normal, s.backgroundColor.light]}>
+      <View>
+        <FlatList
+          data={dynamicQnAList}
+          renderItem={({item}) => {
+            return (
+              <View style={localStyles.questionStyle}>
+                <TouchableOpacity
+                  style={{paddingVertical: Spacing.h.xxsmall}}
+                  onPress={() =>
+                    navigation.navigate("AuthQuestionDetail", {QnA: item})
+                  }>
+                  <Text
+                    style={[
+                      s.text.small,
+                      s.color.main,
+                      s.text.googleSansRegular,
+                    ]}>
+                    {item.questionTitle}
+                  </Text>
+                </TouchableOpacity>
+              </View>
+            );
+          }}
+          keyExtractor={item => item.questionTitle}
+          contentContainerStyle={{
+            alignItems: "center",
+          }}
+        />
+      </View>
+    </SafeAreaView>
+  );
+}
+
+const localStyles = StyleSheet.create({
+  questionStyle: {
+    backgroundColor: s.rowColor.background,
+    borderRadius: 20,
+    marginVertical: Spacing.h.xxsmall,
+    padding: Spacing.h.small,
+    width: wp(80),
+  },
+});
+
+----------------------------------------------------------------------------------------
+AuthQuestionDetail.js ./src/screens/AuthQuestionDetail.js
+----------------------------------------------------------------------------------------
+//screen added for showing the question detail to be authorized and to authorize
+//mostly copied from QnADetailScreen.js of ForeSee App
+
+import React, {useState} from "react";
+import {
+  View,
+  ScrollView,
+  SafeAreaView,
+  StyleSheet,
+  Text,
+  Button,
+} from "react-native";
+import AuthorizeQuestion from "../actions/firebaseActions";
+import firestore from "@react-native-firebase/firestore";
+
+import s from "../styles/styles";
+import {s as scale} from "react-native-size-matters";
+import {Size, Spacing} from "../styles/size";
+import Color from "../styles/color";
+
+export default function AuthQuestionDetail({navigation, route}) {
+  const {QnA} = route.params;
+  const [QuestionExist, setQuestionExist] = useState(checkIfAnswerExist(QnA));
+
+  async function checkIfAnswerExist(ID) {
+    console.log(ID.key);
+    await firestore()
+      .collection("QNA-Auth-QSubmitted")  //check whether the question have been authorized
+      .doc(ID.key)
+      .get()
+      .then(doc => {
+        console.log("checking", ID.key);
+        if (doc.exists) {
+          console.log("true");
+          setQuestionExist(true);
+        } else {
+          console.log("false");
+          setQuestionExist(false);
+        }
+      })
+      .catch(err => console.log("error checking whether authorized", err));
+  }
+  const CallAuthorizeQuestion = ID => {
+    console.log(ID);
+    console.log(route.params);
+    firestore()
+      .collection("QNA-Auth-QSubmitted") //get whether the question have already authorized
+      .doc(ID)
+      .get()
+      .then(doc => {
+        if (doc.exists) {
+          console.log("question already authorized"); //the file already exist do not add again
+        } else {
+          firestore()
+            .collection("QNA-Auth-QSubmitted") //add the file to colleciton as do not exist
+            .doc(ID)
+            .set(route.params)
+            .then(() => {
+              console.log("added file");
+              firestore()
+                .collection("QNA-UnAuth-QSubmitted") // get whether the file have been deleted
+                .doc(ID)
+                .get()
+                .then(doc => {
+                  if (doc.exists) {
+                    firestore()
+                      .collection("QNA-UnAuth-QSubmitted") //delete the file as still exist
+                      .doc(ID)
+                      .delete()
+                      .then(() => console.log("file removed"))
+                      .catch(err => {
+                        console.log("error adding", err);
+                      });
+                  } else {
+                    console.log("question checked"); //file do not exist do not delete again
+                  }
+                })
+                .catch(err => {
+                  console.log("error adding", err);
+                });
+            });
+        }
+      });
+  };
+
+  const TextBox = ({type, title, content}) => {
+    let config = {};
+    switch (type) {
+      case "question":
+        config = {
+          backgroundColor: "#68A97E",
+          titleColor: Color.light,
+          contentColor: Color.main,
+          likeEnabled: false,
+        };
+        console.log("QnA route", QnA.key);
+        break;
+      default:
+        break;
+    }
+
+    return (
+      <View
+        style={[
+          localStyles.textBoxStyle,
+          {backgroundColor: config.backgroundColor},
+        ]}>
+        {config.likeEnabled ? (
+          <View
+            style={{
+              flexDirection: "row",
+              justifyContent: "space-between",
+              alignItems: "center",
+            }}>
+            <Text
+              style={[
+                s.text.small,
+                s.text.googleSansMedium,
+                {color: config.titleColor},
+              ]}>
+              A: {title}
+            </Text>
+          </View>
+        ) : (
+          <Text
+            style={[
+              s.text.small,
+              s.text.googleSansMedium,
+              {color: config.titleColor},
+            ]}>
+            Q: {title}
+          </Text>
+        )}
+
+        <Text
+          style={[
+            s.text.small,
+            s.text.googleSansRegular,
+            {color: config.contentColor},
+          ]}>
+          {content}
+        </Text>
+      </View>
+    );
+  };
+
+  return (
+    <SafeAreaView style={[s.screen.normal, s.backgroundColor.light]}>
+      <ScrollView style={{width: scale(295)}}>
+        <View>
+          {QuestionExist ? (
+            <Text>
+              question with same id have already been authorized. Authorizing it
+              again would replace the previous
+            </Text>
+          ) : (
+            <Text>This question is not yet authorized</Text>
+          )}
+        </View>
+        <Text style={[s.text.large, s.color.main, s.text.googleSansBold]}>
+          Question
+        </Text>
+        <TextBox
+          type="question"
+          title={QnA.questionTitle}
+          content={QnA.questionContent}
+        />
+      </ScrollView>
+      <View style={{marginBottom: 20}}>
+        <Button title="do not authorize and send msg" />
+      </View>
+      <View>
+        <Button
+          title="Authorize"
+          onPress={() => CallAuthorizeQuestion(QnA.key)}
+        />
+      </View>
+    </SafeAreaView>
+  );
+}
+
+const localStyles = StyleSheet.create({
+  textBoxStyle: {
+    marginVertical: Spacing.h.xsmall,
+    paddingVertical: Spacing.h.small,
+    paddingHorizontal: Spacing.h.medium,
+    borderRadius: 20,
+    backgroundColor: Color.background,
+  },
+});
+
+
+//////////////////////////////////////////////////////////////////////////////////////////
+
+//////////////////////////////////////////////////////////////////////////////////////////
+ForeSeeApp Pro user screen for answering QnA which gets the question from
+"QNA-Auth-QSubmitted" and answer them by moving the file to "QNA-UnAuth-ASubmitted"
+and also subit their id to .collection("QNA-QAwerQnerCollection")
+
+----------------------------------------------------------------------------------------
+firebaseActions.js ./src/action/firebaseActions.js
+---------------------------------------------------------------------------------------
+export const fetchAuthQuestion = async () => {
+  console.log("Fetching new authorized question");
+  const snapshot = await firestore()
+    .collection("QNA-Auth-QSubmitted")
+    .get()
+    .catch((error) => Alert.alert("Unable to access network", error));
+
+  if (!snapshot.empty) {
+    console.log("new authorized Question fetched");
+    let tempList = [];
+    snapshot.forEach((doc) => tempList.push({ key: doc.id, ...doc.data() }));
+    return tempList;
+  } else {
+    console.log("snapshot is empty");
+    return [];
+  }
+};
+
+export const addAnswer = async (answerTitle, answerContent, question) => {
+  const { currentUser } = auth();
+  console.log(answerTitle, answerContent, question);
+  await firestore() 
+    .collection("QNA-UnAuth-ASubmitted")   //add the answer to the "QNA-UnAuth-ASubmitted"
+    .add({
+      questionTitle: question.QnA.questionTitle,
+      questionContent: question.QnA.questionContent,
+      answerContent: answerContent,
+      answerTitle: answerTitle,
+      questionID: question.QnA.key,
+      createAnswerTime: Date.now(),
+      createProblemTime: question.QnA.createProblemTime,
+      tags: question.QnA.tags,
+    })
+    .then(async () => {
+      let data = question.QnA;
+      let useruid = currentUser.uid;
+      console.log("added answer to QNA-UnAuth-ASubmitted", useruid, data);
+      await firestore()
+        .collection("QNA-QAwerQnerCollection")  //add the pro id to the "QNA-QAwerQnerCollection" to the question
+        .doc(data.key)
+        .set({ Answerer: useruid }, { merge: true })
+        .then(console.log("add answerer detail passed"))
+        .catch((err) => {
+          console.log("add answerer detail failed", err);
+        });
+
+      await firestore()
+        .collection("QNA-Auth-QSubmitted")  //check if the question still exist in QNA-Auth-QSubmitted
+        .doc(data.key)
+        .get()
+        .then(async (doc) => {
+          if (doc.exists) {
+            await firestore()
+              .collection("QNA-Auth-QSubmitted")  //delete the question if exist
+              .doc(data.key)
+              .delete()
+              .then(() =>
+                console.log("question in QNA-Auth-QSubmitted removed")
+              )
+              .catch((err) =>
+                console.log(
+                  "remove question in QNA-Auth-QSubmitted failed",
+                  err
+                )
+              );
+          } else {
+            console.log("new answer to answered question added"); //do nothing if does exist
+          }
+        });
+
+      return true;
+    })
+    .catch((error) => {
+      console.log("add answer failed", error);
+      return false;
+    });
+  return true;
+};
+----------------------------------------------------------------------------------------
+ProQnASeachScreen.js ./src/screen/QnA/ProQnASeachScreen.js
+---------------------------------------------------------------------------------------
+//screen added for showing the question authorized 
+//mostly copied from QnASearchScreen.js of ForeSee App
+
+import React, { useState, useEffect } from "react";
+import {
+  View,
+  SafeAreaView,
+  StyleSheet,
+  FlatList,
+  TouchableOpacity,
+} from "react-native";
+import { Text, Button, Divider } from "react-native-elements";
+
+import { fetchAuthQuestion } from "../../action/firebaseActions";
+
+import s from "../../styles/styles";
+import { s as scale } from "react-native-size-matters";
+import { Size, Spacing, hp, wp } from "../../styles/size";
+
+/**
+ * Shows a list of answered question
+ */
+export default function ProQnASeachScreen({ navigation }) {
+  // set all list from local storage redux
+  const [dynamicQnAList, setDynamicQnAList] = useState([]);
+
+  //-------------------fetch and manipulate data for QnA--------------------------
+  //Updated on 19-08-2021 by Alpha
+
+  //const the check whether the list is loaded
+  const [loading, setloading] = useState(true);
+
+  //function to load the list from collection
+  const loadFirebaseQnA = async () => {
+    const tempList = await fetchAuthQuestion(); //changed to fetchAnsweredQnA()
+    console.log("set list");
+    setDynamicQnAList(tempList);
+  };
+  //to ensure the data are defined to prevent error of undefined
+  useEffect(() => {
+    if (dynamicQnAList == null || dynamicQnAList == undefined) {
+      console.log("data of list", dynamicQnAList);
+      setloading(true);
+      return loadFirebaseQnA();
+    } else {
+      if (dynamicQnAList[0] == null || dynamicQnAList[0] == undefined) {
+        console.log("data", dynamicQnAList[0]);
+        setloading(true);
+        return loadFirebaseQnA();
+      } else {
+        if (
+          dynamicQnAList[0].QnA == null ||
+          dynamicQnAList[0].QnA == undefined
+        ) {
+          console.log("data", dynamicQnAList[0].QnA);
+          setloading(true);
+          return loadFirebaseQnA();
+        } else {
+          setloading(false);
+        }
+      }
+    }
+  }, [dynamicQnAList]);
+  //-------------------------------------------------------------------
+
+  return (
+    <SafeAreaView style={[s.screen.normal, s.backgroundColor.light]}>
+      <View style={{ height: "100%", width: wp(80) }}>
+        <Text style={[s.text.large, s.color.main, s.text.googleSansBold]}>
+          Question to be Answered
+        </Text>
+
+        <Divider style={{ marginVertical: Spacing.h.xxsmall }} />
+
+        <View>
+          {loading ? (
+            <Text>Loading...</Text>
+          ) : (
+            <FlatList
+              data={dynamicQnAList}
+              renderItem={({ item }) => {
+                return (
+                  <View style={localStyles.questionStyle}>
+                    <TouchableOpacity
+                      style={{ paddingVertical: Spacing.h.xxsmall }}
+                      onPress={() =>
+                        navigation.navigate("ProQNADetails", { QnA: item })
+                      }
+                    >
+                      <Text
+                        style={[
+                          s.text.small,
+                          s.color.main,
+                          s.text.googleSansRegular,
+                        ]}
+                      >
+                        {item.QnA.questionTitle}
+                      </Text>
+                    </TouchableOpacity>
+                  </View>
+                );
+              }}
+              keyExtractor={(item) => item.QnA.questionTitle}
+              contentContainerStyle={{
+                alignItems: "center",
+              }}
+            />
+          )}
+        </View>
+      </View>
+    </SafeAreaView>
+  );
+}
+
+const localStyles = StyleSheet.create({
+  questionStyle: {
+    backgroundColor: s.rowColor.background,
+    borderRadius: 20,
+    marginVertical: Spacing.h.xxsmall,
+    padding: Spacing.h.small,
+    width: wp(80),
+  },
+});
+
+----------------------------------------------------------------------------------------
+ProQnADetailScreen.js ./src/screen/QnA/ProQnADetailScreen.js
+---------------------------------------------------------------------------------------
+//screen added for showing the question detail and to allow pro to submit answer
+//mostly copied from QnADetailScreen.js of ForeSee App
+
+import React, { useState } from "react";
+import {
+  StyleSheet,
+  SafeAreaView,
+  ScrollView,
+  View,
+  FlatList,
+  TextInput,
+} from "react-native";
+
+import { Text } from "react-native-elements";
+
+// Database
+import { addAnswer, addQuestion } from "../../action/firebaseActions";
+
+// Constants
+import { tagList } from "../../constant/QnATrack";
+
+// Custom Components
+import Popup from "../../components/Popup";
+import { RoundRectangleButton } from "../../components/Buttons";
+import {
+  FilterButtonListHooks,
+  TagHorizontalList,
+} from "../../components/useFilterButtons";
+
+import s from "../../styles/styles";
+import { s as scale } from "react-native-size-matters";
+import { Size, Spacing } from "../../styles/size";
+import Color from "../../styles/color";
+
+export default function ProQnADetailScreen({ navigation, route }) {
+  const [questionTitle, setQuestionTitle] = useState("");
+  const [questionContent, setQuestionContent] = useState("");
+  const { FilterButtonList, tagFilters } = FilterButtonListHooks({
+    tagList,
+  });
+  const { QnA } = route.params;
+  const [visible, setVisible] = useState(false);
+  const [popupContent, setPopupContent] = useState(incompleteContent);
+
+  const TextBox = ({ type, title, content }) => {
+    let config = {};
+    switch (type) {
+      case "question":
+        config = {
+          backgroundColor: "#68A97E",
+          titleColor: Color.light,
+          contentColor: Color.main,
+          likeEnabled: false,
+        };
+        break;
+      case "answer":
+        config = {
+          backgroundColor: Color.background,
+          titleColor: Color.main,
+          contentColor: Color.secondary,
+          likeEnabled: true,
+        };
+        break;
+      default:
+        break;
+    }
+
+    return (
+      <View
+        style={[
+          localStyles.textBoxStyle,
+          { backgroundColor: config.backgroundColor },
+        ]}
+      >
+        {config.likeEnabled ? (
+          <View
+            style={{
+              flexDirection: "row",
+              justifyContent: "space-between",
+              alignItems: "center",
+            }}
+          >
+            <Text
+              style={[
+                s.text.small,
+                s.text.googleSansMedium,
+                { color: config.titleColor },
+              ]}
+            >
+              A: {title}
+            </Text>
+            <Icon name="heart" type="font-awesome-5" size={25} color="white" />
+          </View>
+        ) : (
+          <Text
+            style={[
+              s.text.small,
+              s.text.googleSansMedium,
+              { color: config.titleColor },
+            ]}
+          >
+            {title}
+          </Text>
+        )}
+
+        <Text
+          style={[
+            s.text.small,
+            s.text.googleSansRegular,
+            { color: config.contentColor },
+          ]}
+        >
+          {content}
+        </Text>
+      </View>
+    );
+  };
+
+  const incompleteContent = (
+    <Text style={[s.text.small, s.color.secondary, s.text.googleSansMedium]}>
+      Your answer is not completed, please check again.
+    </Text>
+  );
+
+  const confirmContent = (
+    <>
+      <Text style={[s.text.small, s.color.main, s.text.googleSansMedium]}>
+        Answer Title:
+      </Text>
+      <Text
+        style={[
+          s.text.small,
+          s.color.secondary,
+          s.text.googleSansRegular,
+          { marginVertical: Spacing.h.xsmall },
+        ]}
+      >
+        {questionTitle}
+      </Text>
+      <Text style={[s.text.small, s.color.main, s.text.googleSansMedium]}>
+        Content:
+      </Text>
+      <Text
+        style={[
+          s.text.small,
+          s.color.secondary,
+          s.text.googleSansRegular,
+          { marginVertical: Spacing.h.xsmall },
+        ]}
+      >
+        {questionContent}
+      </Text>
+      <RoundRectangleButton
+        title="Submit"
+        align="center"
+        onPress={() => {
+          addAnswer(questionTitle, questionContent, QnA)
+            ? setPopupContent(successContent)
+            : setPopupContent(failedContent);
+        }}
+      />
+    </>
+  );
+
+  const successContent = (
+    <>
+      <Text style={[s.text.small, s.color.secondary, s.text.googleSansMedium]}>
+        Your question has been submitted.
+      </Text>
+      <RoundRectangleButton
+        title="Go Back"
+        align="center"
+        onPress={() => {
+          navigation.goBack();
+        }}
+      />
+    </>
+  );
+
+  const failedContent = (
+    <Text style={[s.text.small, s.color.secondary, s.text.googleSansMedium]}>
+      Your submittion has failed, please try again.
+    </Text>
+  );
+
+  const submitCheck = () => {
+    if (questionTitle === "" || questionContent === "" || tagFilters === []) {
+      setPopupContent(incompleteContent);
+      toggleVisible();
+    } else {
+      setPopupContent(confirmContent);
+      toggleVisible();
+    }
+  };
+
+  const toggleVisible = () => {
+    setVisible(!visible);
+  };
+
+  return (
+    <SafeAreaView style={[s.screen.normal, s.backgroundColor.light]}>
+      <Popup
+        visible={visible}
+        title="Notification"
+        popupContent={<View style={{ width: "100%" }}>{popupContent}</View>}
+        onDismiss={toggleVisible}
+      />
+
+      <ScrollView style={{ width: scale(295) }}>
+        <Text
+          style={[
+            s.text.large,
+            s.color.main,
+            s.text.googleSansBold,
+            { marginVertical: Spacing.h.small },
+          ]}
+        >
+          Question Asked:
+        </Text>
+        <TextBox
+          type="question"
+          title={QnA.QnA.questionTitle}
+          content={QnA.QnA.questionContent}
+        />
+        <Text
+          style={[
+            s.text.large,
+            s.color.main,
+            s.text.googleSansBold,
+            { marginVertical: Spacing.h.small },
+          ]}
+        >
+          Give it a title
+        </Text>
+        <View style={localStyles.textBoxStyle}>
+          <TextInput
+            multiline
+            maxLength={200}
+            style={s.text.small}
+            placeholder="Sum up your answer here"
+            onChangeText={(text) => setQuestionTitle(text)}
+            value={questionTitle}
+          />
+        </View>
+        <Text
+          style={[
+            s.text.large,
+            s.color.main,
+            s.text.googleSansBold,
+            { marginVertical: Spacing.h.small },
+          ]}
+        >
+          The content of the answer:
+        </Text>
+        <View style={[localStyles.textBoxStyle, { height: scale(150) }]}>
+          <TextInput
+            multiline
+            maxLength={1000}
+            style={s.text.small}
+            placeholder="Please type your answer here"
+            onChangeText={(text) => setQuestionContent(text)}
+            value={questionContent}
+          />
+        </View>
+      </ScrollView>
+      <RoundRectangleButton title="Submit" onPress={submitCheck} />
+    </SafeAreaView>
+  );
+}
+
+const localStyles = StyleSheet.create({
+  textBoxStyle: {
+    marginVertical: Spacing.h.xsmall,
+    paddingVertical: Spacing.h.small,
+    paddingHorizontal: Spacing.h.medium,
+    borderRadius: 20,
+    backgroundColor: s.rowColor.background,
+  },
+});
+
+
+//////////////////////////////////////////////////////////////////////////////////////////
+
+
+//////////////////////////////////////////////////////////////////////////////////////////
+AdminApp to authorize answers from pro by moving the answer from "QnA-UnAuth-ASubmitted"
+to "QnA-Auth-ASubmitted" and if question already answered the answer would be replaced.
+
+----------------------------------------------------------------------------------------
+App.js ./App.js
+----------------------------------------------------------------------------------------
+//to add the stack for showing the answer to authorize and detail screen
+ <HomeStack.Screen
+      name="AuthAnswer"
+      component={AuthAnswerScreen}
+      options={{title: "Authorize Answer"}}
+    />
+    <HomeStack.Screen
+      name="AuthAnswerDetail"
+      component={AuthAnswerDetail}
+      options={{title: "Auth Answer Detail"}}
+    />
+
+----------------------------------------------------------------------------------------
+HomeScreen.js ./src/screens/HomeScreen.js
+----------------------------------------------------------------------------------------
+//added button for navigating the screen for authorized answeres
+ <View style={{flex: 1, marginLeft: 20}}>
+          <Button
+            title="to Authorize answers"
+            onPress={() => navigation.navigate("AuthAnswer")}
+          />
+ </View>
+
+----------------------------------------------------------------------------------------
+AuthAnswerDetail.js ./src/screen/AuthAnswerDetail.js
+---------------------------------------------------------------------------------------
+//screen used to diplaye details of quesiton and answer
+//mostly copied from QnADetailScreen.js of ForeSee App
+
+import React from "react";
+import {
+  View,
+  ScrollView,
+  SafeAreaView,
+  StyleSheet,
+  Text,
+  Button,
+} from "react-native";
+import AuthorizeQuestion from "../actions/firebaseActions";
+import firestore from "@react-native-firebase/firestore";
+
+import s from "../styles/styles";
+import {s as scale} from "react-native-size-matters";
+import {Size, Spacing} from "../styles/size";
+import Color from "../styles/color";
+import {useState} from "react";
+
+export default function AuthAnswerDetail({navigation, route}) {
+  const {QnA} = route.params;
+  const [AnswerExist, setAnswerExist] = useState(checkIfAnswerExist(QnA));
+  async function checkIfAnswerExist(ID) { //check if question already answered
+    await firestore()
+      .collection("QNA-Auth-ASubmitted")
+      .doc(ID.questionID)
+      .get()
+      .then(doc => {
+        console.log("checking", ID.questionID);
+        if (doc.exists) {
+          console.log("true");
+          setAnswerExist(true);
+        } else {
+          console.log("false");
+          setAnswerExist(false);
+        }
+      })
+      .catch(err => console.log("error checking whether authorized", err));
+  }
+
+  const CallAuthorizeAnswer = ID => {
+    console.log(ID);
+    firestore()
+      .collection("QNA-Auth-ASubmitted")  //get whether the answer exist
+      .doc(ID.questionID)
+      .get()
+      .then(doc => {
+        if (doc.exists) {
+          console.log("question already authorized"); //if answer already exist replace answer
+          firestore()
+            .collection("QNA-Auth-ASubmitted")
+            .doc(ID.questionID)
+            .set(route.params)
+            .then(() => {
+              console.log("replaced file");
+              firestore()
+                .collection("QNA-UnAuth-ASubmitted")  //check if question exist in unAuth ASubmitted
+                .doc(ID.key)
+                .get()
+                .then(doc => {
+                  if (doc.exists) {
+                    firestore() 
+                      .collection("QNA-UnAuth-ASubmitted")  //delete question if exist
+                      .doc(ID.key)
+                      .delete()
+                      .then(() => console.log("file removed"))
+                      .catch(err => {
+                        console.log("error adding", err);
+                      });
+                  } else {
+                    console.log("answer already authorized"); //give console log and do nothing if not exist
+                  }
+                })
+                .catch(err => {
+                  console.log("error adding", err);
+                });
+            });
+        } else {
+          firestore()
+            .collection("QNA-Auth-ASubmitted")  //add the question to auth ASubmitted
+            .doc(ID.questionID)
+            .set(route.params)
+            .then(() => {
+              console.log("added file");
+              firestore()
+                .collection("QNA-UnAuth-ASubmitted")   //check if question exist in unAuth ASubmitted
+                .doc(ID.key)
+                .get()
+                .then(doc => {
+                  if (doc.exists) {
+                    firestore()
+                      .collection("QNA-UnAuth-ASubmitted") //delete question if exist
+                      .doc(ID.key)
+                      .delete()
+                      .then(() => console.log("file removed"))
+                      .catch(err => {
+                        console.log("error adding", err);
+                      });
+                  } else {
+                    console.log("answer already authorized"); //give console log and do nothing if not exist
+                  }
+                })
+                .catch(err => {
+                  console.log("error adding", err);
+                });
+            });
+        }
+      });
+  };
+
+  const TextBox = ({type, title, content}) => {
+    let config = {};
+    switch (type) {
+      case "question":
+        config = {
+          backgroundColor: "#68A97E",
+          titleColor: Color.light,
+          contentColor: Color.main,
+          likeEnabled: false,
+        };
+        console.log("QnA route", QnA.key);
+        break;
+      case "answer":
+        config = {
+          backgroundColor: Color.background,
+          titleColor: Color.main,
+          contentColor: Color.secondary,
+          likeEnabled: true,
+        };
+        break;
+      default:
+        break;
+    }
+
+    return (
+      <View
+        style={[
+          localStyles.textBoxStyle,
+          {backgroundColor: config.backgroundColor},
+        ]}>
+        {config.likeEnabled ? (
+          <View
+            style={{
+              flexDirection: "row",
+              justifyContent: "space-between",
+              alignItems: "center",
+            }}>
+            <Text
+              style={[
+                s.text.small,
+                s.text.googleSansMedium,
+                {color: config.titleColor},
+              ]}>
+              Answer Title: {title}
+            </Text>
+          </View>
+        ) : (
+          <Text
+            style={[
+              s.text.small,
+              s.text.googleSansMedium,
+              {color: config.titleColor},
+            ]}>
+            Question Title: {title}
+          </Text>
+        )}
+
+        <Text
+          style={[
+            s.text.small,
+            s.text.googleSansRegular,
+            {color: config.contentColor},
+          ]}>
+          {content}
+        </Text>
+      </View>
+    );
+  };
+
+  return (
+    <SafeAreaView style={[s.screen.normal, s.backgroundColor.light]}>
+      <ScrollView style={{width: scale(295)}}>
+        <View>
+          {AnswerExist ? (
+            <Text>
+              This question have already been authorized. Authorizing it again
+              would replace the answer
+            </Text>
+          ) : (
+            <Text>This question is not yet authorized</Text>
+          )}
+        </View>
+        <Text style={[s.text.large, s.color.main, s.text.googleSansBold]}>
+          Question
+        </Text>
+        <TextBox
+          type="question"
+          title={QnA.questionTitle}
+          content={QnA.questionContent}
+        />
+        <TextBox
+          type="answer"
+          title={QnA.answerTitle}
+          content={QnA.answerContent}
+        />
+      </ScrollView>
+      <View style={{marginBottom: 20}}>
+        <Button title="do not authorize and send msg" />
+      </View>
+      <View>
+        <Button title="Authorize" onPress={() => CallAuthorizeAnswer(QnA)} />
+      </View>
+    </SafeAreaView>
+  );
+}
+
+const localStyles = StyleSheet.create({
+  textBoxStyle: {
+    marginVertical: Spacing.h.xsmall,
+    paddingVertical: Spacing.h.small,
+    paddingHorizontal: Spacing.h.medium,
+    borderRadius: 20,
+    backgroundColor: Color.background,
+  },
+});
+----------------------------------------------------------------------------------------
+AuthAnswer.js ./src/screen/AuthAnswer.js
+---------------------------------------------------------------------------------------
+//screen used to display list of answer for authorize
+//mostly copied from QnASearchScreen.js of ForeSee App
+
+import React, {useEffect, useState} from "react";
+import {
+  View,
+  Text,
+  SafeAreaView,
+  StyleSheet,
+  FlatList,
+  TouchableOpacity,
+} from "react-native";
+import {fetchAnsweredQnA} from "../actions/firebaseActions";
+
+import s from "../styles/styles";
+import {Size, Spacing, wp} from "../styles/size";
+import Color from "../styles/color";
+
+export default function AuthAnswerScreen({navigation}) {
+  const [dynamicQnAList, setDynamicQnAList] = useState([]);
+
+  useEffect(() => {
+    const loadFirebaseQnA = async () => {
+      const tempList = await fetchAnsweredQnA();
+      setDynamicQnAList(tempList);
+    };
+
+    loadFirebaseQnA();
+  }, [navigation]);
+
+  return (
+    <SafeAreaView style={[s.screen.normal, s.backgroundColor.light]}>
+      <View>
+        <FlatList
+          data={dynamicQnAList}
+          renderItem={({item}) => {
+            return (
+              <View style={localStyles.questionStyle}>
+                <TouchableOpacity
+                  style={{paddingVertical: Spacing.h.xxsmall}}
+                  onPress={() =>
+                    navigation.navigate("AuthAnswerDetail", {QnA: item})
+                  }>
+                  <Text
+                    style={[
+                      s.text.small,
+                      s.color.main,
+                      s.text.googleSansRegular,
+                    ]}>
+                    {item.questionTitle}
+                  </Text>
+                </TouchableOpacity>
+              </View>
+            );
+          }}
+          keyExtractor={item => item.questionTitle}
+          contentContainerStyle={{
+            alignItems: "center",
+          }}
+        />
+      </View>
+    </SafeAreaView>
+  );
+}
+
+const localStyles = StyleSheet.create({
+  questionStyle: {
+    backgroundColor: s.rowColor.background,
+    borderRadius: 20,
+    marginVertical: Spacing.h.xxsmall,
+    padding: Spacing.h.small,
+    width: wp(80),
+  },
+});
+
+----------------------------------------------------------------------------------------
+firebaseActions.js ./src/action/firebaseActions.js
+---------------------------------------------------------------------------------------
+//to fetch answer from .collection("QNA-UnAuth-ASubmitted")
+
+export const fetchAnsweredQnA = async () => {
+  console.log("Fetching new QnA Answer");
+  const snapshot = await firestore()
+    .collection("QNA-UnAuth-ASubmitted")
+    .get()
+    .catch(error => Alert.alert("Unable to access network", error));
+
+  if (!snapshot.empty) {
+    console.log("new QnA fetched");
+    let tempList = [];
+    snapshot.forEach(doc => tempList.push({key: doc.id, ...doc.data()}));
+    return tempList;
+  } else {
+    console.log("snapshot is empty");
+    return [];
+  }
+};

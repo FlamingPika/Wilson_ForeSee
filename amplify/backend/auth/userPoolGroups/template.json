@@ -1,0 +1,55 @@
+{
+    "AWSTemplateFormatVersion": "2010-09-09",
+    "Parameters": {
+        "authforeseeapp456bfb73UserPoolId": {
+            "Type": "String",
+            "Default": "authforeseeapp456bfb73UserPoolId"
+        },
+        
+        "authforeseeapp456bfb73AppClientID": {
+            "Type": "String",
+            "Default": "authforeseeapp456bfb73AppClientID"
+        },
+        "authforeseeapp456bfb73AppClientIDWeb": {
+            "Type": "String",
+            "Default": "authforeseeapp456bfb73AppClientIDWeb"
+        },
+        "AuthRoleArn": {
+            "Type": "String"
+        },
+        "UnauthRoleArn": {
+            "Type": "String"
+        },
+        "env": {
+            "Type": "String"
+        }
+    },
+    "Conditions": {
+        "ShouldNotCreateEnvResources": {
+            "Fn::Equals": [
+                {
+                    "Ref": "env"
+                },
+                "NONE"
+            ]
+        }
+    },
+    "Resources": {
+    
+        "foreseeusersGroup": {
+          "Type" : "AWS::Cognito::UserPoolGroup",
+          "Properties" : {
+              "GroupName" : "foreseeusers",
+              "Precedence" : 1,
+              
+              "UserPoolId" : {
+                "Ref": "authforeseeapp456bfb73UserPoolId"
+              } 
+            }
+        },
+        
+    
+    
+    },
+    
+}

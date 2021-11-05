@@ -1,0 +1,148 @@
+
+Added Description to detail report of graph with GraphDetailScreen.js andfirebaseAction.js
+---------------------------------------------------------
+FireBase reminder
+---------------------------------------------------------
+added collection In depth report description with 4 folder
+3 folder for description of different language (English,Simplified Chinese, Traditonal Chinese)
+1 folder with the array of intervals of different eye problems
+
+the language folder contains folders for different eye problems 
+In the folder there are doc in 0,1,2,3... with a string called 'string' and contains the description
+the higher the number the more severe the problem is and 0 is without the eye problem
+the number of doc varies with the number of intervals of the level of severity
+
+Caution in changing or added description:
+1, the doc for the desciption must be integers larger than 0
+2, the doc for the desciption must be call 'string' all in lowercase 
+3, dont change the name of folders apart the one in language folder
+4, the name of the eye problem for folder must be in "Astigmatism", "hyperopia" and "myopia" 
+with uppercase and lowercase considered
+--------------------------------------------------------------
+GraphDetailScreen.js ./src/screen/Graph/GraphDetailScreen.js
+-------------------------------------------------------------------
+
+//data and variable for graph details description 
+  const [description, setDescription] = useState("test");
+  const userLanguage = useSelector((state) => state.settings.language);
+
+  //-------------------find the interval of range difining how severe the problem is-------
+  //done on 28/7/2021 for graph description by Alpha
+
+  const getRangIn = (arrayFetched, name) => {
+    let rangeIn = 0; // the range is set to 0 to assume not in range first,
+    // this number refers to the doc number for firebase at
+    // in depth report description > English > which contains the string
+
+    if (name != "myopia") {
+      //find range for problem other then myopia (as myopia range is -ve)
+      // do a loop of the range interval from array fetched
+      for (let index = 0; index < arrayFetched.length; index++) {
+        if (seletedData > arrayFetched[index]) {
+          console.log("array index", index, arrayFetched[index]);
+          rangeIn += 1;
+          //change the description number refer to the interval in
+        }
+      }
+      return rangeIn;
+    } else {
+      // find range for myopia similar to above but from seletedData < arrayFetched[index] not ">"
+      for (let index = 0; index < arrayFetched.length; index++) {
+        if (seletedData < arrayFetched[index]) {
+          console.log("array index", index, arrayFetched[index]);
+          rangeIn += 1;
+        }
+      }
+      console.log("after loop rangin", rangeIn);
+      return rangeIn;
+    }
+  };
+  // to convert language to correct string of doc on firebase
+  const getLang = (userLanguage) => {
+    console.log("getting lang", userLanguage);
+    if (userLanguage === "EN") {
+      return "English";
+    } else if (userLanguage === "CN") {
+      return "Simplified-Chinese";
+    } else if (userLanguage === "TC") {
+      return "Traditional-Chinese";
+    }
+  };
+
+  //------------------------------------------------------------
+
+//---------------update description of selected data point----------
+  //done on 28/7/2021 for graph description by Alpha
+
+  useEffect(async () => {
+    //get the array for the interval of problem
+    let arrayFetched = await getArrayOfRange(data[selectedEye].title);
+    //data[selectedEye].title refer to name of eye problem
+    //getArrayOfRange from "../../action/firebaseActions"
+    //to find the array of interval of corresponding prblem
+
+    //usestate for changing the description
+    setDescription(
+      //getDescription from "../../action/firebaseActions"
+      //to get the corresponding description of diff lvl of problem
+      await getDescription(
+        // for finding the collection in firebase
+        data[selectedEye].title,
+        // getRangIn is used to find the interval the data point is at
+        getRangIn(arrayFetched, data[selectedEye].title),
+        // get language name
+        getLang(userLanguage)
+      )
+    );
+  }, [seletedData, data[selectedEye].title]);
+  // this useEffect only take effect when another
+  //eye problem is chosen or the data point chosen is differnt
+
+  //-----------------------------------------------------------------
+
+--------------------------------------------------------------
+firebaseAction.js ./src/action/firebaseAction.js 
+-------------------------------------------------------------------
+
+//-------------------find the interval of range difining how severe the problem is-------
+//done on 28/7/2021 for graph description by Alpha
+
+//Output: GraphDetailScreen.js ./src/screen/Graph/GraphDetailScreen.js
+//Input: GraphDetailScreen.js ./src/screen/Graph/GraphDetailScreen.js
+
+//get array with the range of value of different eye problems
+export const getArrayOfRange = async (name) => {
+  let rangeArrayData = await firestore()
+    .collection("In-depth-report-description")
+    .doc("Range-Array")
+    .get()
+    .catch((err) => {
+      console.log("get array range failed", err);
+    });
+  //get the array within the object rangeArrayData
+  let desireArray = rangeArrayData._data[name];
+  //return the array of intervals
+  return desireArray;
+};
+
+//get the description from the corresponding name of problem and interval
+export const getDescription = async (name, number, lang) => {
+  let insertNumber = number.toString();
+  console.log("In getDescription", name, insertNumber, lang);
+
+  let description = await firestore()
+    .collection("In-depth-report-description")
+    .doc(lang)
+    .collection(name)
+    .doc(insertNumber)
+    .get()
+    .catch((err) => {
+      console.log("get description failed", err);
+    });
+  //get the string of the desciption
+
+  let descFetech = await description._data.string;
+  //return the description
+  return descFetech;
+};
+//--------------------------------------------------------

@@ -1,0 +1,46 @@
+Last Updated: 1-8-2021
+
+This is the document for the basic flow of how the graph detail description 
+is formed.
+
+-----------------------------------------------------------------------------
+file involved: 	firebaseAction.js ./src/action/firebaseAction.js 
+		GraphDetailScreen.js ./src/screen/Graph/GraphDetailScreen.js
+		store.js ./src/redux/store.js
+-----------------------------------------------------------------------------
+
+1, we first detect change in the data selected in graph with "seletedData" or 
+change in the eye problem chosen with "data[selectedEye].title]" in 
+"GraphDetailScreen.js"
+
+2, If it is changed we call the "getArrayOfRange" function 
+from "firebaseAction.js"
+
+3, and we get the collection("In-depth-report-description").doc("Range-Array")
+which contain all the range for level of severity for different eye problems
+in "rangeArrayData._data[name]", where "rangeArrayData" is the data feteched 
+from firebase and "[name]" is the name of the eye problem from 
+"data[selectedEye].title]" when we call the fucntion
+
+4, then we return the desired range array to "GraphDetailScreen.js" 
+
+5, then we call the "setDescription" function in "firebaseAction.js" which requires
+the name of the eye problem "data[selectedEye].title", the user's eye problem
+level of severity function "getRangIn(arrayFetched, data[selectedEye].title)"
+and the language the user use with function "getLang(userLanguage)"
+
+6, In "GraphDetailScreen.js" , the "getRangIn" function first divide
+the eye probelm to 2 types one with positive numbers and the other with
+negative ie myopia. And loop with the array we got in step 3,4 to find the 
+range the user eye problem level is in and then return the "rangeIn" 
+which reflects the number for the corresponding string in firebase .
+
+7, In "GraphDetailScreen.js" , the "getLang" funciton get the "userLanguage"
+from the "store" with "state.settings.language" using "useSelector". And return
+the string with the corresponding name of the language in firebase.
+
+8, the "setDescription" function is then used to get the desired string in firebase
+in "firebaseAction.js" and return the description to "description" variable in 
+"GraphDetailScreen.js"  with "setDescription" using "useState"
+
+9, the "description" is then displayed

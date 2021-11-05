@@ -1,0 +1,21 @@
+{
+  "dev": {
+    "awscloudformation": {
+      "AuthRoleName": "amplify-foreseeapp-dev-150403-authRole",
+      "UnauthRoleArn": "arn:aws:iam::585908310353:role/amplify-foreseeapp-dev-150403-unauthRole",
+      "AuthRoleArn": "arn:aws:iam::585908310353:role/amplify-foreseeapp-dev-150403-authRole",
+      "Region": "us-east-1",
+      "DeploymentBucketName": "amplify-foreseeapp-dev-150403-deployment",
+      "UnauthRoleName": "amplify-foreseeapp-dev-150403-unauthRole",
+      "StackName": "amplify-foreseeapp-dev-150403",
+      "StackId": "arn:aws:cloudformation:us-east-1:585908310353:stack/amplify-foreseeapp-dev-150403/03299960-9f75-11eb-958d-124c09213289",
+      "AmplifyAppId": "d1m5ka2yk40qhp"
+    },
+    "categories": {
+      "auth": {
+        "foreseeapp456bfb73": {},
+        "userPoolGroups": {}
+      }
+    }
+  }
+}

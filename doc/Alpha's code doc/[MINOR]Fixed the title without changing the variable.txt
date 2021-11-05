@@ -1,0 +1,78 @@
+
+[MINOR] No flow of these codes is included as the comment is enough to understand
+
+Made the title of eye problem uppercase without changing the varaible
+
+---------------------------------------------------------------------
+Graph.js ./src/components/Graph.js
+---------------------------------------------------------------------
+//-------------To change eye title name without affecting variable name -----------
+  //done on 12/8/2021 for eye title by Alpha
+  // constant to display the title of graph
+  const [eyeProblemTitle, setEyeProblemTitle] = useState(); // tochange eye problem data
+
+  useEffect(() => {
+    //ensure the data is defined
+    if (data === null || data === undefined) {
+      setLoading(true);
+      return;
+    }
+
+    console.log("changing title");
+    //switch case to set the title(not changing the varaible as the title are used in code)
+    switch (data[selectedEye].title) {
+      case "hyperopia":
+        let GraphTitleHyperopia = "Hyperopia";
+        return setEyeProblemTitle(GraphTitleHyperopia);
+        break;
+
+      case "myopia":
+        let GraphTitleMyopia = "Myopia";
+        return setEyeProblemTitle(GraphTitleMyopia);
+        break;
+      default:
+        console.log("eye problem title for graph need not to change");
+        return setEyeProblemTitle(data[selectedEye].title);
+    }
+  }, [data]);
+
+  //------------------------------------------------------------------
+---------------------------------------------------------------------
+GraphDetailscreen.js ./src/screen/Graph/GraphDetailscreen.js
+---------------------------------------------------------------------
+/-------------To change eye title name without affecting variable name -----------
+  //done on 12/8/2021 for eye title by Alpha
+
+  //constant for the displayed title
+  const [eyeProblemTitle, setEyeProblemTitle] = useState();
+  //function to change the title to uppercase
+  const changeTitleName = (inputTitle) => {
+    //cases for change
+    switch (inputTitle) {
+      case "hyperopia":
+        let GraphTitleHyperopia = "Hyperopia";
+        return GraphTitleHyperopia;
+        break;
+
+      case "myopia":
+        let GraphTitleMyopia = "Myopia";
+        return GraphTitleMyopia;
+        break;
+      default:
+        console.log("eye problem title need not to change");
+        return inputTitle;
+    }
+  };
+  //----------------------------------------------------
+
+  //-------------To change eye title name without affecting variable name -----------
+  //done on 12/8/2021 for changing the title by Alpha
+  useEffect(() => {
+    //check whether the language is english
+    if (userLanguage == "EN") {
+      setEyeProblemTitle(changeTitleName(data[selectedEye].title));
+    } else {
+      setEyeProblemTitle(data[selectedEye].title);
+    }
+  }, [data[selectedEye].title]);
+  //------------------------------------------------------------------------

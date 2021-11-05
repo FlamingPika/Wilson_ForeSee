@@ -1,0 +1,68 @@
+{
+  "project_info": {
+    "project_number": "459026813385",
+    "project_id": "foresee-app-2021",
+    "storage_bucket": "foresee-app-2021.appspot.com"
+  },
+  "client": [
+    {
+      "client_info": {
+        "mobilesdk_app_id": "1:459026813385:android:c0c7b11b98701e23bd1818",
+        "android_client_info": {
+          "package_name": "com.foresee"
+        }
+      },
+      "oauth_client": [
+        {
+          "client_id": "459026813385-k6jghto8k88teidk5arf4do9ibed1a57.apps.googleusercontent.com",
+          "client_type": 3
+        }
+      ],
+      "api_key": [
+        {
+          "current_key": "AIzaSyBjTkyX0eiS4Aab6L_Rr9vWuDHkJd_yXWc"
+        }
+      ],
+      "services": {
+        "appinvite_service": {
+          "other_platform_oauth_client": [
+            {
+              "client_id": "459026813385-k6jghto8k88teidk5arf4do9ibed1a57.apps.googleusercontent.com",
+              "client_type": 3
+            }
+          ]
+        }
+      }
+    },
+    {
+      "client_info": {
+        "mobilesdk_app_id": "1:459026813385:android:a3c7fc59716fabd4bd1818",
+        "android_client_info": {
+          "package_name": "com.testingrn"
+        }
+      },
+      "oauth_client": [
+        {
+          "client_id": "459026813385-k6jghto8k88teidk5arf4do9ibed1a57.apps.googleusercontent.com",
+          "client_type": 3
+        }
+      ],
+      "api_key": [
+        {
+          "current_key": "AIzaSyBjTkyX0eiS4Aab6L_Rr9vWuDHkJd_yXWc"
+        }
+      ],
+      "services": {
+        "appinvite_service": {
+          "other_platform_oauth_client": [
+            {
+              "client_id": "459026813385-k6jghto8k88teidk5arf4do9ibed1a57.apps.googleusercontent.com",
+              "client_type": 3
+            }
+          ]
+        }
+      }
+    }
+  ],
+  "configuration_version": "1"
+}

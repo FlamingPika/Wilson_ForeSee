@@ -1,0 +1,231 @@
+
+a more detail flow of QnA function of the ForeSee app and admin app. Mostly focus on 
+firebase and not the visualization, as they are mostl copied from QnASearchScreen.js
+and QnADetailScreen.js, work of previous coder in the ./src/screen/QnA folder and also 
+the final visualization would be hand over to other coder
+////////////////////////////////////////////////////////////////////////////////////////
+doc structure
+-----------------------------------------------------------------------------
+ForeSeeApp > AskQuestionScreen.js > addQuestion
+"QNA-UnAuth-QSubmitted"
+    question doc:
+        uid:generated randomly by firebase
+            questionTitle:""
+            questionContent:""
+            answerTitle: ""
+            answerContent: ""
+            createAnswerTime:"" 
+            createProblemTime:""
+            tags: []
+"QNA-QAwerQnerCollection"
+    question record doc:
+        uid: uid of question doc
+            Answer:""
+            Question:""
+-----------------------------------------------------------------------------
+AdminApp > AuthQuestionDetail.js > CallAuthorizeQuestion
+"QNA-Auth-QSubmitted"
+    question doc:
+        uid: uid from QNA-UnAuth-QSubmitted
+            QnA:
+                questionTitle:""
+                questionContent:""
+                answerTitle: ""
+                answerContent: ""
+                createAnswerTime:"" 
+                createProblemTime:""
+                key: uid from QNA-UnAuth-QSubmitted
+            tags: []
+----------------------------------------------------------------------------
+ForeSeeApp > ProQnADetailScreen.js > addAnswer
+"QNA-UnAuth-ASubmitted"
+        uid:generated randomly by firebase
+            QnA:
+                questionTitle:""
+                questionContent:""
+                answerTitle: ""
+                answerContent: ""
+                questionID: uid from QNA-Auth-QSubmitted
+                createAnswerTime:"" 
+                createProblemTime:""
+            tags: []
+"QNA-QAwerQnerCollection"
+    question record doc:
+        uid: uid of question doc
+            Answer:""
+            Question:""
+ ----------------------------------------------------------------------------
+AdminApp > AuthAnswerDetail.js > CallAuthorizeAnswer
+"QNA-Auth-ASubmitted"
+        uid: uid of question doc
+            QnA:
+                questionTitle:""
+                questionContent:""
+                answerTitle: ""
+                answerContent: ""
+                questionID: uid from QNA-Auth-QSubmitted
+                key: uid from answer in QNA-UnAuth-ASubmitted
+                createAnswerTime:"" 
+                createProblemTime:""
+            tags: []
+////////////////////////////////////////////////////////////////////////////////////////
+
+////////////////////////////////////////////////////////////////////////////////////////
+ForeSee App for showing and fetching the collection "QNA-Auth-ASubmitted" to member 
+ie.the final version of the qna with question and answer all authorized and submitted
+-----------------------------------------------------------------------------
+file involved: 	QnASearchScreen.js ./src/screen/QnA/QnASearchScreen.js
+                QnADetailScreen.js ./src/screen/QnA/QnADetailScreen.js
+                firebaseActions.js ./src/action/firebaseActions.js
+                FamilyHomeScreen.js ./src/screen/Home/FamilyHomeScreen.js
+-----------------------------------------------------------------------------
+1, when the member click on the "QnA" button at the "FamilyHomeScreen.js" they would be navigated
+to the "QnAStack" which is the "QnASearchScreen.js"
+
+2, on loading the screen at "QnASearchScreen.js", useEffect is triggered and would load the
+function "loadFirebaseQnA", which would then fetch the list of QnA that is answered, questioned 
+authorized by admin twice (the question and the answer need to be authorized) from function 
+"fetchAnsweredQnA()" of "firebaseActions.js" until the data is defined
+
+3, in "firebaseActions.js", "fetchAnsweredQnA()", it would fetch all the doc in the collection
+"QNA-Auth-ASubmitted" and be proccessed for the visualization which will not be mentioned here
+as most of the code is from previous coders.
+
+4, Then the list is returned to the "QnASearchScreen.js" and be loaded in the flat list component
+if the data is defined, the flat list would be loaded. If not loaded the "fetchAnsweredQnA()"
+would be called again until it is defined and can be displayed.
+
+5, when a user click a certain item in the flat list component, it would be send to "QnADetailScreen.js"
+with the data chosen also sent with in terms of "route". The rest of how they are viewed will not
+be discussed here, but the only code changed is the route for title, with only a ".QnA" added, as
+in the new object for the question and answer has a new subfolder "QnA" for all the titles 
+and such.
+////////////////////////////////////////////////////////////////////////////////////////
+
+////////////////////////////////////////////////////////////////////////////////////////
+ForeSee App for user to ask a question which is then passed in to the collection 
+"QNA-UnAuth-QSubmitted" and be wait for admin to authorized it
+-----------------------------------------------------------------------------
+file involved: 	AskQuestionScreen.js ./src/screen/QnA/AskQuestionScreen.js
+                firebaseActions.js ./src/action/firebaseActions.js
+-----------------------------------------------------------------------------
+1, the user clicked the ask a question button at the "QnASearchScreen.js" and
+is navigated to "AskQuestionScreen.js"
+
+2, user fill in all the details and click submit, and confirm the submit, which lead to 
+the function "addQuestion" triggered and forms a doc of the question to the firebase
+in "firebaseActions.js"
+
+3, in "firebaseActions.js", we first form a doc in "QNA-UnAuth-QSubmitted" with the time also
+recorded.
+
+4, then we use the ".then" of firestore to get the uid generated for the question, which is
+used to form a doc in "QNA-QAwerQnerCollection" which stores the question id with the questioner
+member uid with "currentUser.uid".
+////////////////////////////////////////////////////////////////////////////////////////
+
+////////////////////////////////////////////////////////////////////////////////////////
+Admin App for admins to authorize quesiton which form the question in 
+"QNA-Auth-QSubmitted" and delete the file in "QNA-UnAuth-QSubmitted"
+-----------------------------------------------------------------------------
+file involved: 	firebaseActions.js ./src/action/firebaseActions.js
+                App.js ./App.js
+                HomeScreen.js ./src/screens/HomeScreen.js
+                AuthQuestScreen.js ./src/screens/AuthQuestScreen.js
+                AuthQuestionDetail.js ./src/screens/AuthQuestionDetail.js
+-----------------------------------------------------------------------------
+1, the admin log in to the "HomeScreen.js' and choose the button to authorize
+question and is navigated to "AuthoQuestScreen.js"
+
+2, then the screen fetch data with useEffect, "loadFirebaseQnA" fucntion in 
+"firebaseActions.js"
+
+3, the function "loadFirebaseQnA" would fetch all the doc in "QNA-UnAuth-QSubmitted"
+and is processed to "templist" which is then sent back the the screen
+
+4, the admin can choose the question to authorize, when clicked the question in the screen
+they will be sent to "AuthQuestionDetail.js" with the data of the question in terms of
+"route"
+
+5, the function "checkIfAnswerExis" is ran to check whether the question is already authorized
+by checking whether the question exist in "QNA-Auth-QSubmitted" and shows the text
+according to the result
+
+6, which the admin can choose the button to authorize the question and call function
+"CallAuthorizeQuestion" which will first check whether the file exist in 
+"QNA-Auth-QSubmitted", if it does not exist it will procced and add the file 
+to "QNA-Auth-QSubmitted", if not it will return a console log and do nothing.
+
+7, then it would check whether the file exist in "QNA-UnAuth-QSubmitted"
+if it does  exist it will procced and delete the file ,if not it will return a
+console log and do nothing.
+////////////////////////////////////////////////////////////////////////////////////////
+
+////////////////////////////////////////////////////////////////////////////////////////
+ForeSeeApp Pro user screen for answering QnA which gets the question from
+"QNA-Auth-QSubmitted" and answer them by moving the file to "QNA-UnAuth-ASubmitted"
+and also subit their id to .collection("QNA-QAwerQnerCollection")
+-----------------------------------------------------------------------------
+file involved: 	firebaseActions.js ./src/action/firebaseActions.js
+                ProQnASeachScreen.js ./src/screen/QnA/ProQnASeachScreen.js
+                ProQnADetailScreen.js ./src/screen/QnA/ProQnADetailScreen.js
+-----------------------------------------------------------------------------
+1, the pro choose the QnA button in the pro home screen and is navigated to
+"ProQnASeachScreen.js" 
+
+2, which would load the function "loadFirebaseQnA" and in useEffect check all question
+are defined and set "loading" to false which shows the flat list component with all
+question fetched
+
+3, the pro can click a quesiton to answer which would sent the pro to the detail screen
+of " ProQnADetailScreen.js" with the data of the question sent
+
+4, the pro can enter the answer title and content and submit, which after confirming would 
+call the function "addAnswer" in ""firebaseActions.js"
+
+5, in the function "addAnswer", it would first form a doc in "QNA-UnAuth-ASubmitted" with
+its answer contained. I would then send the id of the pro to "QNA-QAwerQnerCollection" and
+record its id with the correpsonding question answered. 
+
+6, it then checks whether the question exist in "QNA-Auth-QSubmitted" exist. If exist, it would
+remove the doc. If not exist, it would just output a console log and do nothing
+////////////////////////////////////////////////////////////////////////////////////////
+
+////////////////////////////////////////////////////////////////////////////////////////
+Admin App for admins to authorize answer which form the answer in 
+"QNA-Auth-ASubmitted" and delete the file in "QNA-UnAuth-ASubmitted"
+-----------------------------------------------------------------------------
+file involved: 	firebaseActions.js ./src/action/firebaseActions.js
+                App.js ./App.js
+                HomeScreen.js ./src/screens/HomeScreen.js
+                AuthAnswer.js ./src/screen/AuthAnswer.js
+                AuthAnswerDetail.js ./src/screen/AuthAnswerDetail.js
+-----------------------------------------------------------------------------
+1, the admin choose the button to authorize answer, which then navigate
+to "AuthAnswer.js"
+
+2, in "AuthAnswer.js", the function "loadFirebaseQnA" is called and call the 
+function "fetchAnsweredQnA" in "firebaseActions.js"
+
+3, it then fetch all the answer from "QNA-UnAuth-QSubmitted" and form the list which
+is then returned and displayed
+
+4, when the admnin choose the answer to authorize, the admin is sent to the 
+"AuthAnswerDetail" screen with the data of the answered question chosen.
+
+5, I would then check whether the question have been answered and display the text,
+as if it is answered authorizing it would replace the answer with the new onPress
+
+6, after the admin click the authorize button, the function "CallAuthorizeAnswer" is called.
+Whihc first check whether the answer exist in "QNA-Auth-ASubmitted".
+
+7,If it exist,
+it would replace the answer in "QNA-Auth-ASubmitted" with new one and check whether the doc
+exist in QNA-Unable-ASubmitted", if yes, it would removed the doc, if not it would reply
+with a console log and do nothng.
+
+8,if it doesnt exist,
+It would add the answer to "QNA-Auth-ASubmitted" and check whether the doc
+exist in QNA-Unable-ASubmitted", if yes, it would removed the doc, if not it would reply
+with a console log and do nothng.
+////////////////////////////////////////////////////////////////////////////////////////

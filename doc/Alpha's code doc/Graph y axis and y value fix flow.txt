@@ -1,0 +1,37 @@
+Last Updated: 14-8-2021
+
+The is the document for the flow on how the y axis and y value are adjusted and display
+onto the graph with react native chart kit.
+
+-----------------------------------------------------------------------------
+file involved: 	Graph.js .src/components/Graph.js
+-----------------------------------------------------------------------------
+1, when the function "changeDataPoint" is called while the linechart component is loading,
+the function would first check whether the data is defined before procceding
+
+2, it then make a copy of the "data" containing all the data points.
+
+3, we then define 2 value "bNew" using "Math.min.apply" to find the min value of the array
+and the function "GetevenNumberSmaller" to get the value we want to be the min. Similarly done
+with "aMax" to find the max value we want to display.
+
+4, we then let "tempDataDatasetsData = dataPoint.datasets[0].data" which is array containing
+all the y value of data to be displayed and let "firstData = dataPoint.datasets[0].data[0]" for
+the first data of the array which is used later to make the graph beginning smooth like a 
+horizontal line and to shift all values to the right in the graph once.
+
+5, we then we define the y value by adding another 2 set of data, one with the max value we want
+and the other with the min value we want to set the max and min value of the graph, and also 
+added the "firstData" to the beginning of the y value array to shift all data one index foward.
+
+6, we then let "tempLabel = dataPoint.labels" which is the array containing all the x value for
+x axis and we redefine the array by "newTempLabel = [null, ...tempLabel]" to also shift the x 
+value array one index foward.
+
+7, at last we increment all the change we made to "tempData" which is then returned to the linechart
+as the data for the graph to form.
+
+8. Also note that "hidePointsAtIndex={[0]}" is added to have the first data point of both the 
+x and y values to be ignored, if not done so the "data" in the array of y values which contain 
+the max and min we want would be displayed as clickable point in graph detail screen's graph.
+

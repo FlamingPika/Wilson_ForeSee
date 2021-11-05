@@ -1,0 +1,113 @@
+
+Fixed the y value not displaying normally with prvious method of setting the max and min
+value by using new method
+
+-------------------------------------------------------------
+Graph.js ./src/components/Graph.js
+-------------------------------------------------------------
+
+//--------format the data for max and min value of y axis ----------------------------
+  //done on 14/8/2021 for the graph to display correct y axis and y values by Alpha
+
+  //-----------to get the correct max min value of y axis-----------
+  //done on 30/7/2021 for y axis number by Alpha
+  function GetevenNumberSmaller(min) {
+    if (min % 2 == 0) {
+      return min;
+    } else {
+      if (min < 0) {
+        let n = 1;
+        do {
+          min = min + 2;
+          n++;
+        } while (min < 0);
+        return -(n - 1) * 2;
+      } else if (min > 0) {
+        let n = 1;
+        do {
+          min = min - 2;
+          n++;
+        } while (min > 0);
+        return (n - 1) * 2;
+      } else if (min == 0) {
+        return 0;
+      }
+    }
+  }
+  //to find the max of the value in the array we form
+  function GetevenNumberbigger(max) {
+    if (max % 2 == 0) {
+      return max;
+    } else {
+      if (max < 0) {
+        let n = 1;
+        do {
+          max = max + 2;
+          n++;
+        } while (max < 0);
+        return -(n - 2) * 2;
+      } else if (max > 0) {
+        let n = 1;
+        do {
+          max = max - 2;
+          n++;
+        } while (max > 0);
+        return (n - 1) * 2;
+      } else if (max == 0) {
+        return 0;
+      }
+    }
+  }
+
+  //-----------------------------------
+  //to ouput data object for displayed data
+
+  function changeDataPoint() {
+    //ensure the the data is defined
+    if (data === undefined || data === null) {
+      return;
+    }
+    console.log("forming values for graph");
+    //get a copy of the data
+    const dataPoint = JSON.parse(JSON.stringify(data));
+    //find the min value of y axis
+    let bNew = GetevenNumberSmaller(
+      Math.min.apply(null, data.datasets[0].data)
+    );
+    //find the max value of y axis
+    let aNew = GetevenNumberbigger(Math.max.apply(null, data.datasets[0].data));
+    //get array of data points of the copy of data
+    let tempDataDatasetsData = dataPoint.datasets[0].data;
+    //get the first data point of y values
+    let firstData = dataPoint.datasets[0].data[0];
+    //form new array for the data with max and min included and to smooth the curve. start with first data
+    let newTempDataDatasetsData = [
+      { data: [firstData, ...tempDataDatasetsData] },
+      { data: [bNew] },
+      { data: [aNew] },
+    ];
+    //get the x axis array of the data
+    let tempLabel = dataPoint.labels;
+    //form new array for the x axis data, the first data is null as it wont be
+    let newTempLabel = [null, ...tempLabel];
+
+    //update the data to be shown with all the array adjusted above included
+    let tempData = dataPoint;
+    tempData.datasets = newTempDataDatasetsData;
+    tempData.labels = newTempLabel;
+    //return the array to be set as the display data
+    return tempData;
+  }
+  //-----------------------------------------------------------------
+<LineChart
+	...
+ segments={4} //set the number of segments for y axis
+ data={changeDataPoint()} // to call the function for the data to display
+ hidePointsAtIndex={[0]} // to hide the first data point as it only contains the max min value
+	...
+>
+---------------------------------------------------------------------
+
+
+
+
