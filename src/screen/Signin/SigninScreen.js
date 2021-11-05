@@ -92,12 +92,14 @@ export default function SigninScreen({ navigation, route }) {
     console.log("this is sign in");
     setLoading(true);
     if (email == ""){
-      toggleVisible();
+   
       updatePopupContent("emptyEmail");
+      toggleVisible();
     }
     else if (password == ""){
-      toggleVisible();
+
       updatePopupContent("emptyPassword");
+      toggleVisible();
     }
     else {
       await auth()
@@ -108,34 +110,40 @@ export default function SigninScreen({ navigation, route }) {
         .catch((err) => {
           if(err.code === 'auth/invalid-email'){
             console.log("Invalid Email");
-            toggleVisible();
+           
             updatePopupContent("TEST");
+            toggleVisible();
           }
           else{
             // Just to make sure no anomalies happen
             console.log("Sign in failed", err);
-            toggleVisible();
+      
             updatePopupContent("failed");
+            toggleVisible();
           }
         });
     }
     setLoading(false);
   };
 
-  const signUp = async () => {
+  const signUp = async (email, password, confirmPassword) => {
     console.log("this is sign up");
     setLoading(true);
     if (email == ""){
-      toggleVisible();
+      
       updatePopupContent("emptyEmail");
+      toggleVisible();
     }
     else if (password == ""){
-      toggleVisible();
+    
       updatePopupContent("emptyPassword");
+      toggleVisible();
     }
     else if (password != confirmPassword){
-      toggleVisible();
+      
       updatePopupContent("pwNotMatch");
+      toggleVisible();
+      console.log("INSIDE pass!=confirm");
     }
     else if (email != "" && password != "" && password == confirmPassword) {
       await auth()
@@ -147,13 +155,15 @@ export default function SigninScreen({ navigation, route }) {
         .catch((err) => {
           if(err.code === 'auth/email-already-in-use'){
             console.log("Email is already been used");
-            toggleVisible();
+            
             updatePopupContent("usedEmail");
+            toggleVisible();
           }
           else{
             console.log("Sign up failed", err.code);
-            toggleVisible();
+            
             updatePopupContent("failed");
+            toggleVisible();
           }
         });
     } 
@@ -313,7 +323,7 @@ export default function SigninScreen({ navigation, route }) {
               isSignIn && isForgotPW == false
                 ? () => signIn(email, password)
                 : !isSignIn && isForgotPW == false
-                ? () => signUp(email, password)
+                ? () => signUp(email, password, confirmPassword)
                 : () => forgotPW(email)
             }
           />
