@@ -130,7 +130,6 @@ export default function SigninScreen({ navigation, route }) {
     console.log("this is sign up");
     setLoading(true);
     if (email == ""){
-      
       updatePopupContent("emptyEmail");
       toggleVisible();
     }
