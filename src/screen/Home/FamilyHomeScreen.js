@@ -8,6 +8,7 @@ import { useDispatch, useSelector } from "react-redux";
 
 import I18n from "i18n-js";
 import PagerView from "react-native-pager-view";
+import Popup from "../../components/Popup";
 
 // Custom Components
 import { ZoomGraph } from "../../components/Graph";
@@ -18,6 +19,8 @@ import Color from "../../styles/color";
 // Styles
 import { hp, wp, Size, Spacing } from "../../styles/size";
 import s from "../../styles/styles";
+import { fetchUserBio, setIsFirstSignin} from "../../action/firebaseActions";
+import { useContentWidth } from "react-native-render-html";
 
 /**
  * Home screen in the family user mode
@@ -35,6 +38,23 @@ export default function FamilyHomeScreen({ navigation }) {
   // pager related
   const pagerRef = useRef();
   const [pagerIdx, setPagerIdx] = useState(0);
+  
+  const [visible, setVisible] = useState(false);
+  const [popupContent, setPopupContent] = useState();
+
+  const toggleVisible = () => {
+    setVisible(!visible);
+  };
+
+  const updatePopupContent = (content) => {
+    setPopupContent(
+      <Text style={[s.text.small, s.color.secondary, s.text.googleSansMedium]}>
+        {content === "first"
+          ? I18n.t("HomeScreen_FirstSignIn")
+          : I18n.t("HomeScreen_notFirstSignIn")}
+      </Text>
+    );
+  }
 
   const emptyDataForGraph = () => ({
     title: "",
@@ -49,6 +69,19 @@ export default function FamilyHomeScreen({ navigation }) {
   ];
 
   useEffect(() => {
+    const getIsSignIn = async () =>{
+      const isSignIn = await fetchUserBio();
+      if(isSignIn.isFirstSignin){
+        toggleVisible();
+        updatePopupContent("first");
+      }
+      // else{
+      //   toggleVisible();
+      //   updatePopupContent("notfirst");
+      // }
+    }
+    getIsSignIn();
+    setIsFirstSignin();
     if (
       currentMember != null &&
       Object.keys(currentMember?.eyeDataHistory).length != 0
@@ -181,6 +214,7 @@ export default function FamilyHomeScreen({ navigation }) {
     console.log("account created on", createdTime);
   }, [currentMember?.eyeDataHistory]);
 
+  
   function EyeButtons() {
     function iconProps(eye) {
       const isSelected = changeLangSelectedEye(eye) == selectedEye;
@@ -254,6 +288,7 @@ export default function FamilyHomeScreen({ navigation }) {
       );
     }
   }
+  
 
   function ExploreButtons() {
     const itemSep = Spacing.h.large;
@@ -307,6 +342,7 @@ export default function FamilyHomeScreen({ navigation }) {
   }
 
   return (
+    
     <View style={[s.screen.normal, s.backgroundColor.main]}>
       <View
         style={{
@@ -339,7 +375,14 @@ export default function FamilyHomeScreen({ navigation }) {
         <EyeButtons />
       </View>
       <View style={{ height: Spacing.h.small, flex: 1 }} />
-
+      
+        <Popup
+          visible={visible}
+          title={I18n.t("SETTINGS_notifications")}
+          popupContent={<View style={{ width: "100%" }}>{popupContent}</View>}
+          onDismiss={toggleVisible}
+        />
+      
       <View
         style={{
           height: hp(36),

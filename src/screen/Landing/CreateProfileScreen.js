@@ -32,16 +32,9 @@ export default function CreateProfileScreen({ navigation }) {
     setVisible(!visible);
   };
   const onSkip = () => {
-    setIsFirstSignin();
+    
     navigation.navigate("FamilyDrawer");
-    if(isFirstSignIn == true){
-      <Popup
-          visible={visible}
-          title={I18n.t("SETTINGS_notifications")}
-          popupContent={<View style={{ width: "100%" }}>{"FIRST SIGN IN"}</View>}
-          onDismiss={toggleVisible}
-        />
-    }
+    
   };
 
   const onSubmit = (p2Data) => {
@@ -64,15 +57,8 @@ export default function CreateProfileScreen({ navigation }) {
         glassesDataHistory: {},
       })
     );
-    if(isFirstSignIn == true){
-      <Popup
-          visible={visible}
-          title={I18n.t("SETTINGS_notifications")}
-          popupContent={<View style={{ width: "100%" }}>{"FIRST SIGN IN"}</View>}
-          onDismiss={toggleVisible}
-        />
-    }
-    setIsFirstSignin();
+  
+  
     setLoading(false);
     navigation.replace("FamilyDrawer");
   };

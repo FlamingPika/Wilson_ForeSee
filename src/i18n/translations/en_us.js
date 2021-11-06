@@ -35,6 +35,11 @@ export default {
   SIGNIN_placeholder_2: "Password",
   SIGNIN_placeholder_3: "Confirm Password",
 
+  //NEW
+  HomeScreen_FirstSignIn:
+    "Welcome to the ForeSee App",
+  HomeScreen_notFirstSignIn:
+    "Welcome BACK to the ForeSee App",
   // NEW
   TEST:
     "TESTING",

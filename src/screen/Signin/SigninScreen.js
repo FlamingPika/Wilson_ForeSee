@@ -77,10 +77,11 @@ export default function SigninScreen({ navigation, route }) {
           ? I18n.t("emptyEmail")
           : content == "emptyPassword"
           ? I18n.t("emptyPassword")
-          : content = "invalidEmail"
-          ? I18n.t("SIGNIN_invalidEmail")
+          
           : content == "pwNotMatch"
           ? I18n.t("SIGNUP_pwNotMatch")
+          : content = "invalidEmail"
+          ? I18n.t("SIGNIN_invalidEmail")
           : content == "resetPW"
           ? I18n.t("SIGNIN_emailSentPassword")
           : I18n.t("SIGNIN_failed")}
@@ -111,7 +112,7 @@ export default function SigninScreen({ navigation, route }) {
           if(err.code === 'auth/invalid-email'){
             console.log("Invalid Email");
            
-            updatePopupContent("TEST");
+            updatePopupContent("invalidEmail");
             toggleVisible();
           }
           else{
